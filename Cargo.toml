@@ -1,0 +1,16 @@
+[package]
+name = "reflectron"
+version = "0.1.0"
+edition = "2021"
+description = "A configuration management tool for building test systems and mirroring them to production"
+license = "AGPL-3.0"
+homepage = "https://github.com/OtherJohnGray/reflectron"
+repository = "https://github.com/OtherJohnGray/reflectron"
+readme = "README.md"
+keywords = ["zfs", "incus", "vm", "provisioning", "zfsbootmenu", "devops", "configuration management"]
+categories = ["virtualization", "filesystem", "command-line-utilities"]
+
+[dependencies]
+chrono = "0.4"
+serde = { version = "1.0.210", features = ["derive"] }
+serde_yaml = "0.9.33"
