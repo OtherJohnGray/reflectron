@@ -5,9 +5,7 @@ Reflectron is a server configuration and change management tool that builds loca
 The generated instances have a read-only root filesystem on ZFS, and boot via zfsbootmenu with SSH support for remote decryption of datasets during boot. All configuration changes 
 and updates are then made to the test machines and promoted as-is to the production machines. 
 
-Test systems are identical to production systems down to mac address and ip address on an isolated double-nat virtual network, enabling full pre-production testing of routing, firewall rules, load balancing, and  other network changes.
-
-Automated package manager updates can be configured along with automated smoke tests to prevent breaking updates from distribution packages from being promoted to production - which should be useful the next time the Linux kernel team decides to break ZFS!
+Test systems are identical to production systems down to mac address and ip address on an isolated virtual network, enabling full pre-production testing of routing, firewall rules, load balancing, and  other network changes.
 
 ## Prerequisites
 
@@ -18,9 +16,13 @@ The VM host running Reflectron requires:
 
 ## Limitations
 
-- Currently only builds Debian12 systems (but extensible if you would like to add others).
+- Currently only builds Debian12 systems.
 
-- The test systems do not attempt to duplicate the disk layout of the production machine, and instead rely on ZFS to abstract this detail away.
+- Currently hard-codes VM CPU and memory quota.
+
+- Currently hard-codes pool layout to RAIDz5 with no special, cache, or log devices
+
+- Currently hard-codes swap to use MDRAID
 
 ## Status
 #### This is pre-alpha code under development, and not ready for production use.
