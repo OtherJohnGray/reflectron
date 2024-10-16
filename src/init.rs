@@ -1,4 +1,5 @@
-use izb::*;
+use crate::base::*;
+use crate::incus::*;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Read;
@@ -13,7 +14,7 @@ struct Config {
 }
 
 fn parse_config(file_path: &str) -> Config {
-    let mut file = File::open(file_path).unwrap_or_else(|e| izb::halt(&format!("Could not open config file {} : {}", file_path, e)));
+    let mut file = File::open(file_path).unwrap_or_else(|e| halt(&format!("Could not open config file {} : {}", file_path, e)));
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap_or_else(|e| halt(&format!("Could not read file {} : {}", file_path, e)));
     serde_yaml::from_str(&contents).unwrap_or_else(|e| halt(&format!("Could not parse config file {} : {}", file_path, e)))

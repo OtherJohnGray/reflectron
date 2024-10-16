@@ -1,23 +1,20 @@
 # Reflectron
 ## production == test
 
-Reflectron is a configuration and change management tool that builds local test instances as Incus VMs, and then mirrors them to production (either bare metal or virtual server) using ZFS replication. 
+Reflectron is a server configuration and change management tool that builds local test instances as Incus VMs, then mirrors them to production (either bare metal or virtual server) using ZFS replication. 
 The generated instances have a read-only root filesystem on ZFS, and boot via zfsbootmenu with SSH support for remote decryption of datasets during boot. All configuration changes 
-and updates are then made to the test machines and promoted as-is to the production machines, and production machines are configured to continuously back up all non-root filesystems back to the test system to allow for rapid disaster recovery. 
+and updates are then made to the test machines and promoted as-is to the production machines. 
 
-Test systems are identical to the production system down to mac address and ip address on an isolated virtual network, enabling full pre-production testing of routing, firewall rules, load balancing, and  other network changes.
+Test systems are identical to production systems down to mac address and ip address on an isolated double-nat virtual network, enabling full pre-production testing of routing, firewall rules, load balancing, and  other network changes.
 
-Automated package manager updates can be configured along with automated smoke tests to prevent breaking updates from third party packages from being promoted to production.
+Automated package manager updates can be configured along with automated smoke tests to prevent breaking updates from distribution packages from being promoted to production - which should be useful the next time the Linux kernel team decides to break ZFS!
 
 ## Prerequisites
 
 The VM host running Reflectron requires:
 
 - OpenZFS
-- Systemd
-- Systemd-Networkd
 - Incus
-- Rust and Cargo
 
 ## Limitations
 

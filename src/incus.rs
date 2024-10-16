@@ -118,5 +118,5 @@ pub fn push_file(instance: &Instance, path: &str) {
 }
 
 pub fn configure_nic(nic: Nic, name: &str, ip: &str) {
-
+    todo!();
 }
