@@ -34,7 +34,7 @@ The VM host running Reflectron requires:
 git clone https://github.com/OtherJohnGray/reflectron.git
 cd reflectron
 cargo build
-ln -s ./target/debug/reflectron /usr/local/bin/ref
+sudo ln -s $(pwd)/target/debug/reflectron /usr/local/bin/ref
 ```
 2. Setup reflectron user and required directories
 ```

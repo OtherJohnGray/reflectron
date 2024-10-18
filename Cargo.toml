@@ -2,7 +2,7 @@
 name = "reflectron"
 version = "0.1.0"
 edition = "2021"
-description = "A configuration management tool for building test systems and mirroring them to production"
+description = "REFLECTRON configuration management tool"
 license = "AGPL-3.0"
 homepage = "https://github.com/OtherJohnGray/reflectron"
 repository = "https://github.com/OtherJohnGray/reflectron"
