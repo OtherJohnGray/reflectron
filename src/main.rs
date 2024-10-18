@@ -1,5 +1,5 @@
 mod base;
-mod template;
+mod image;
 mod incus;
 mod sanoid;
 
@@ -93,8 +93,8 @@ fn new(machine_name: &str, network_name: &str, ip: &str, password: &str) {
 fn create_image(distro: &str) {
     println!("Creating image for distribution: {}", distro);
     match distro.to_lowercase().as_str() {
-        "debian" => crate::template::debian::create(),
+        "debian" => crate::image::debian::create(),
         // Add more distributions here as needed
-        _ => println!("Unsupported distribution: {}", distro),
+        _ => println!("Unsupported distribution: {}\nOnly Debian 12 is supported at the current time.", distro),
     }
 }
