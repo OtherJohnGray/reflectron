@@ -1,11 +1,11 @@
 mod base;
-mod debian;
+mod template;
 mod incus;
 mod sanoid;
 
-mod init;
-
 use clap::Parser;
+use crate::base::*;
+use crate::incus::*;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -33,7 +33,23 @@ enum Command {
         #[arg(short, long)]
         password: String,
     },
+    /// Create an image for a specific distribution
+    Image {
+        /// Action to perform on the image
+        #[command(subcommand)]
+        action: ImageAction,
+    },
 }
+
+#[derive(Parser, Debug)]
+enum ImageAction {
+    /// Create a new image
+    Create {
+        /// Distribution name
+        distro: String,
+    },
+}
+
 
 fn main() {
     let cli = Cli::parse();
@@ -45,12 +61,24 @@ fn main() {
         Command::New { machine_name, network_name, ip, password } => {
             new(&machine_name, &network_name, &ip, &password);
         }
+        Command::Image { action } => {
+            match action {
+                ImageAction::Create { distro } => {
+                    create_image(&distro);
+                }
+            }
+        }
     }
 }
 
 fn init() {
-    println!("Initializing the application...");
-    // Add your initialization logic here
+    log(&format!("Initializing Reflectron bridge and VM",));
+    let reflectron_bridge = create_bridge("reflectron-bridge");
+    let profile = create_profile("reflectron-vm");
+    let reflectron = create_debian_vm("reflectron", &profile);
+    let reflectron_nic = attach_bridge(&reflectron_bridge, &reflectron, "00:16:3e:ff:55:01");
+    start_vm(&reflectron);
+    configure_nic(reflectron_nic, "reflectron-nic", "10.254.0.1");
 }
 
 fn new(machine_name: &str, network_name: &str, ip: &str, password: &str) {
@@ -60,4 +88,13 @@ fn new(machine_name: &str, network_name: &str, ip: &str, password: &str) {
     println!("IP: {}", ip);
     println!("Password: {}", password);
     // Add your new machine creation logic here
+}
+
+fn create_image(distro: &str) {
+    println!("Creating image for distribution: {}", distro);
+    match distro.to_lowercase().as_str() {
+        "debian" => crate::template::debian::create(),
+        // Add more distributions here as needed
+        _ => println!("Unsupported distribution: {}", distro),
+    }
 }

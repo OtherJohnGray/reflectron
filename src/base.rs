@@ -13,7 +13,7 @@ pub fn write_logfile(message: &str) {
     
     let log_entry = format!("[{}] {}\n", timestamp, message);
     
-    let log_dir = PathBuf::from("/opt/builder/log");
+    let log_dir = PathBuf::from("/var/log/reflectron");
     let log_file = log_dir.join(format!("{}.log", date));
     
     match OpenOptions::new()
@@ -109,6 +109,24 @@ pub fn wait(mut command: Command, sleep: u64) {
             Err(e) => {
                 halt(&format!("Command '{}' failed: {}", command.cmdline(), e));
             }
+        }
+    }
+}
+
+
+pub fn get(mut command: Command) -> String {
+    match command.output() {
+        Ok(output) => {
+            if output.status.success() {
+                String::from_utf8_lossy(&output.stdout).into_owned()
+            } else {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                halt(&format!("Command '{}' failed:\nSTDOUT: {}\nSTDERR: {}", command.cmdline(), stdout, stderr));
+            }
+        },
+        Err(e) => {
+            halt(&format!("Command '{}' failed: {}", command.cmdline(), e));
         }
     }
 }

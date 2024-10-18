@@ -11,39 +11,42 @@ fn incus(args: &[&str]) -> Command {
     cmd
 }
 
+#[derive(Debug)]
 pub struct Bridge {
     name: String,
     // address: String
 }
 
+#[derive(Debug)]
 pub struct Instance {
     name: String
 }
 
+#[derive(Debug)]
 pub struct Nic {
+    #[allow(dead_code)]
     mac: String
 }
 
+#[derive(Debug)]
 pub struct Profile {
     name: String
 }
 
 pub fn create_profile(name: &str) -> Profile {
-    let filename = &format!("/opt/builder/files/{}.profile", name);
-    match File::open(filename) {
-        Ok(file) => {
-            let mut op = incus(&["profile", "create", name]);
-            op.stdin(file);
-            perform(
-                &format!("Create profile {}", name),
-                Some(incus(&["profile", "show", name])),
-                op
-            );
-        },
-        Err(e) => {
-            halt(&format!("Profile file {} could not be opened: {}", filename, e));
-        }
-    }
+    perform(
+        &format!("Create Incus profile {}", name),
+        Some(incus(&["profile", "show", name])), 
+        incus(&["profile", "create", name])
+    );
+    let cpu_count_string = get( Command::new("nproc") );
+    let cpu_count = cpu_count_string.trim_end().parse::<u64>().unwrap_or_else(|e| halt(&format!("unable to parse output of ncpu of '{}' : {}", cpu_count_string, e)));
+    let cpu_limit = (cpu_count + 1 / 2).to_string(); 
+    perform(
+        &format!("Set memory and CPU limits for Incus profile {}", name),
+        None,
+        incus(&["profile", "set", name, &format!("limits.cpu={}", cpu_limit), "limits.memory=4GB"])
+    );
     Profile {name: name.to_owned()}
 }
 
@@ -63,6 +66,7 @@ pub fn create_bridge(name: &str) -> Bridge {
             );
             file.write_all(content.as_bytes())
             .unwrap_or_else(|e| halt(&format!("Could not write to file {} : {}", file_path, e)));
+            log(&format!("Wrote bridge config file {}", file_path));
         },
         Err(e) => {
             halt(&format!("Could not open file {} : {}", file_path, e));
@@ -105,6 +109,7 @@ pub fn start_vm(instance: &Instance){
     wait(incus(&["exec", &instance.name, "ls"]), 1);
 }
 
+#[allow(dead_code)]
 pub fn push_file(instance: &Instance, path: &str) {
     let source_path = format!("/opt/builder/files{}", path);
     if !Path::new(&source_path).exists() {
@@ -118,5 +123,5 @@ pub fn push_file(instance: &Instance, path: &str) {
 }
 
 pub fn configure_nic(nic: Nic, name: &str, ip: &str) {
-    todo!();
+    print!("{:?}{:?}{:?}", nic, name, ip);
 }
