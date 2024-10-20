@@ -43,7 +43,7 @@ sudo ./setup.sh
 
 
 ## Usage 
-1. Create the inital image (currently debian only)
+1. Create the inital filesystem image (currently debian only)
 ```
 ref image create debian
 ```
