@@ -13,7 +13,7 @@ pub fn create() {
     });
 
     // Run debootstrap
-    let mut debootstrap = Command::new("sudo");
+    let mut debootstrap = Command::new("pkexec");
     debootstrap.args(&[&debootstrap_path, "bookworm", &image_path]);
     perform(
         &format!("Run debootstrap in {}", image_path),

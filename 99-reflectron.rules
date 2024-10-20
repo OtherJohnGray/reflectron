@@ -1,0 +1,15 @@
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.policykit.exec" && subject.isInGroup("reflectron")) {
+        var cmd = action.lookup("command_line");
+        var tokens = cmd.split(/\s+/);
+        
+        if (tokens.length >= 3 &&
+            tokens[0] == "/usr/sbin/debootstrap" &&
+            tokens[1].match(/^[a-z]+$/) &&
+            tokens[2].startsWith("/opt/reflectron/images/") &&
+            tokens[2].substring("/opt/reflectron/images/".length).match(/^[a-zA-Z0-9]+$/)) {
+            
+            return polkit.Result.YES;
+        }
+    }
+});
