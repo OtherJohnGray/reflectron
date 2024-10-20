@@ -40,24 +40,12 @@ sudo ln -s $(pwd)/target/debug/reflectron /usr/local/bin/ref
 ```
 sudo ./setup.sh
 ```
-3. Allow the reflectron user to manage network namespaces:
-```
-visudo
-```
-then add the following lines to the file:
-```
-# Allow reflectron to add and remove virtual networks:
-reflectron ALL=(root) NOPASSWD: /sbin/ip link add name * type bridge
-reflectron ALL=(root) NOPASSWD: /sbin/ip tuntap add name * mode tap
-reflectron ALL=(root) NOPASSWD: /sbin/ip link set * up
-reflectron ALL=(root) NOPASSWD: /sbin/ip link delete *
 
-```
 
 ## Usage 
-1. su to the reflectron user
+1. Create the inital image (currently debian only)
 ```
-su reflectron
+ref image create debian
 ```
 2. ...TBD. 
 
