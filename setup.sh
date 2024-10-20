@@ -17,11 +17,12 @@ groupadd reflectron
 usermod -a -G reflectron $SUDO_USER
 
 # Create necessary directories
-mkdir -p /opt/reflectron
-chown :reflectron /opt/reflectron
-chmod 775 /opt/reflectron
+mkdir -p /opt/reflectron/images
+touch /opt/reflectron/database
+chown -R :reflectron /opt/reflectron
+chmod -R 775 /opt/reflectron
 
-mkdir -p /var/log/reflectron
+mkdir /var/log/reflectron
 chown :reflectron /var/log/reflectron
 chmod 775 /var/log/reflectron
 
