@@ -1,11 +1,9 @@
 mod base;
 mod image;
-mod incus;
 mod sanoid;
 
 use clap::Parser;
-use crate::base::*;
-use crate::incus::*;
+//use crate::base::*;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -16,8 +14,6 @@ struct Cli {
 
 #[derive(Parser, Debug)]
 enum Command {
-    /// Initialize the application
-    Init,
     /// Create a new machine
     New {
         /// Name of the machine
@@ -55,9 +51,6 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Init => {
-            init();
-        }
         Command::New { machine_name, network_name, ip, password } => {
             new(&machine_name, &network_name, &ip, &password);
         }
@@ -71,15 +64,6 @@ fn main() {
     }
 }
 
-fn init() {
-    log(&format!("Initializing Reflectron bridge and VM",));
-    let reflectron_bridge = create_bridge("reflectron-bridge");
-    let profile = create_profile("reflectron-vm");
-    let reflectron = create_debian_vm("reflectron", &profile);
-    let reflectron_nic = attach_bridge(&reflectron_bridge, &reflectron, "00:16:3e:ff:55:01");
-    start_vm(&reflectron);
-    configure_nic(reflectron_nic, "reflectron-nic", "10.254.0.1");
-}
 
 fn new(machine_name: &str, network_name: &str, ip: &str, password: &str) {
     println!("Creating a new machine...");

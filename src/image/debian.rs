@@ -18,7 +18,8 @@ pub fn create() {
     perform(
         &format!("Run debootstrap in {}", image_path),
         None,
-        debootstrap
+        debootstrap,
+        true
     );
 
 }

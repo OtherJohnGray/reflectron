@@ -1,10 +1,10 @@
-use std::io::Write;
 use std::fs::OpenOptions;
 use chrono::Local;
 use std::path::PathBuf;
-use std::process::Command;
 use std::thread;
 use std::time::Duration;
+use std::process::{Command, Stdio};
+use std::io::{BufReader, BufRead, Write};
 
 pub fn write_logfile(message: &str) {
     let now = Local::now();
@@ -49,7 +49,7 @@ pub fn halt(message: &str) -> ! {
     std::process::exit(1)
 }
 
-pub fn perform( description: &str, check: Option<Command>, mut operation: Command ){
+pub fn perform(description: &str, check: Option<Command>, mut operation: Command, stream_output: bool) {
     if let Some(mut check_cmd) = check {
         match check_cmd.output() {
             Ok(output) => {
@@ -64,18 +64,70 @@ pub fn perform( description: &str, check: Option<Command>, mut operation: Comman
         }
     }
 
-    match operation.output() {
-        Ok(output) => {
-            if output.status.success() {
-                log(&format!("{} succeeded.", description));
-            } else {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                halt(&format!("Command '{}' failed:\nSTDOUT: {}\nSTDERR: {}", operation.cmdline(), stdout, stderr));
+    if stream_output {
+        operation.stdout(Stdio::piped());
+        operation.stderr(Stdio::piped());
+
+        let mut child = match operation.spawn() {
+            Ok(child) => child,
+            Err(e) => {
+                halt(&format!("Failed to spawn command '{}': {}", operation.cmdline(), e));
             }
-        },
-        Err(e) => {
-            halt(&format!("Command '{}' failed: {}", operation.cmdline(), e));
+        };
+
+        let stdout = child.stdout.take().expect("Failed to capture stdout");
+        let stderr = child.stderr.take().expect("Failed to capture stderr");
+
+        let stdout_handle = thread::spawn(move || {
+            let reader = BufReader::new(stdout);
+            for line in reader.lines() {
+                if let Ok(line) = line {
+                    println!("{}", line);
+                }
+            }
+        });
+
+        let stderr_handle = thread::spawn(move || {
+            let reader = BufReader::new(stderr);
+            for line in reader.lines() {
+                if let Ok(line) = line {
+                    eprintln!("{}", line);
+                }
+            }
+        });
+
+        // Wait for the command to finish
+        match child.wait() {
+            Ok(status) => {
+                // Wait for output threads to finish
+                stdout_handle.join().expect("Stdout thread panicked");
+                stderr_handle.join().expect("Stderr thread panicked");
+
+                if status.success() {
+                    log(&format!("{} succeeded.", description));
+                } else {
+                    halt(&format!("Command '{}' failed with exit code: {:?}", operation.cmdline(), status.code()));
+                }
+            },
+            Err(e) => {
+                halt(&format!("Failed to wait for command '{}': {}", operation.cmdline(), e));
+            }
+        }
+    } else {
+        // Original non-streaming behavior
+        match operation.output() {
+            Ok(output) => {
+                if output.status.success() {
+                    log(&format!("{} succeeded.", description));
+                } else {
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    halt(&format!("Command '{}' failed:\nSTDOUT: {}\nSTDERR: {}", operation.cmdline(), stdout, stderr));
+                }
+            },
+            Err(e) => {
+                halt(&format!("Command '{}' failed: {}", operation.cmdline(), e));
+            }
         }
     }
 

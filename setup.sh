@@ -34,8 +34,12 @@ cat << EOF | sudo tee "$SUDOERS_FILE" > /dev/null
 %reflectron ALL=(root) NOPASSWD: /sbin/ip tuntap add name * mode tap
 %reflectron ALL=(root) NOPASSWD: /sbin/ip link set * up
 %reflectron ALL=(root) NOPASSWD: /sbin/ip link delete *
+
 # Allow group reflectron to run debootstrap
 %reflectron ALL=(root) NOPASSWD: $(which debootstrap)
+
+# Allow group reflectron to start VMs in the reflectron network namespace
+%reflectron ALL=(root) NOPASSWD: /sbin/ip netns exec reflectron qemu-system-x86_64 *
 EOF
 
 # Set correct permissions for the sudoers file
