@@ -49,6 +49,24 @@ pub fn halt(message: &str) -> ! {
     std::process::exit(1)
 }
 
+pub fn pkexec(args: &[&str]) -> Command {
+    let mut pkexec = Command::new("pkexec");
+    pkexec.args(args);
+    pkexec
+}
+
+pub fn chroot(new_root: &str, args: &[&str]) -> Command {
+    let mut chroot_args = vec!["chroot", new_root];
+    chroot_args.extend_from_slice(args);
+    pkexec(&chroot_args)
+}
+
+pub fn apt_install(new_root: &str, args: &[&str]) -> Command {
+    let mut apt_args = vec!["DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y"];
+    apt_args.extend_from_slice(args);
+    chroot(new_root, &apt_args)
+}
+
 pub fn perform(description: &str, check: Option<Command>, mut operation: Command, stream_output: bool) {
     if let Some(mut check_cmd) = check {
         match check_cmd.output() {
