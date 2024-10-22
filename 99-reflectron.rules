@@ -1,20 +1,27 @@
 polkit.addRule(function(action, subject) {
     if (action.id == "org.freedesktop.policykit.exec" && subject.isInGroup("reflectron")) {
+
         var cmd = action.lookup("command_line");
         var tokens = cmd.trim().split(/\s+/);
         
         // Get the full path of binaries
         var debootstrapPath = polkit.spawn(["which", "debootstrap"]).trim();
         var chrootPath = polkit.spawn(["which", "chroot"]).trim();
+        var mountPath = polkit.spawn(["which", "mount"]).trim();
+        var cpPath = polkit.spawn(["which", "cp"]).trim();
         
         switch(tokens[0]) {
-            case debootstrapPath : 
+            case debootstrapPath :
+                polkit.log("debootstrap"); 
                 return debootstrap(tokens.slice(1));
             case chrootPath :
+                polkit.log("chroot");
                 return chroot(tokens.slice(1));
-            case "mount" :
+            case mountPath :
+                polkit.log("mount");
                 return mount(tokens.slice(1));
-            case "cp" :
+            case cpPath :
+                polkit.log("cp");
                 return copy_sources(tokens.slice(1));
         }
     }
@@ -26,36 +33,37 @@ function debootstrap(tokens) {
         tokens[0].match(/^[a-z]+$/) &&
         tokens[1].startsWith("/opt/reflectron/images/") &&
         tokens[1].substring("/opt/reflectron/images/".length).match(/^[a-zA-Z0-9]+$/)) {
-        
+            polkit.log("debootstrap matched");
         return polkit.Result.YES;
     } 
-    
+    polkit.log("debootstrap not matched");
     return polkit.Result.NOT_HANDLED;
 }
 
 function chroot(tokens) {
     if (tokens.length > 2 &&
-        tokens[0].match(/^[a-z]+$/) &&
-        tokens[1].startsWith("/opt/reflectron/images/") &&
-        tokens[1].substring("/opt/reflectron/images/".length).match(/^[a-zA-Z0-9]+$/)) {
+        tokens[0].startsWith("/opt/reflectron/images/") &&
+        tokens[0].substring("/opt/reflectron/images/".length).match(/^[a-zA-Z0-9]+$/)) {
+            polkit.log("chroot path matched");
             if (
-                tokens.length == 2 &&
-                tokens[0] == "apt" &&
-                tokens[1] == "update" 
+                tokens.length == 3 &&
+                tokens[1] == "apt" &&
+                tokens[2] == "update" 
             ) {
+                polkit.log("chroot apt update matched");
                 return polkit.Result.YES;
             }
             if (
                 tokens.length > 6 &&
+                tokens[1] == "env" &&
                 tokens[2] == "DEBIAN_FRONTEND=noninteractive" &&
                 tokens[3] == "apt-get" &&
                 tokens[4] == "install" &&
                 tokens[5] == "-y"){
-                    return apt_install(tokens.split(6));
+                    polkit.log("apt install");
+                    return apt_install(tokens.slice(6));
             }
-
     }
-
     return polkit.Result.NOT_HANDLED;
 }
 
@@ -74,6 +82,7 @@ function apt_install(tokens) {
         
         // Basic pattern match
         if (!debianNameRegex.test(pkg)) {
+            polkit.log("apt install matched");
             return polkit.Result.NO;
         }
 
@@ -84,10 +93,11 @@ function apt_install(tokens) {
             pkg.endsWith('.') ||               // Can't end in dot
             pkg.includes('.-') ||              // No dot-hyphen
             pkg.includes('-.')) {              // No hyphen-dot
+            polkit.log("apt install failed");
             return polkit.Result.NO;
         }
     }
-    
+    polkit.log("apt install matched");
     return polkit.Result.YES;    
 }
 
@@ -99,23 +109,33 @@ function apt_install(tokens) {
 function mount(tokens) {
     switch (tokens[0]) {
         case "-t" :
+            polkit.log("mount_type");
             return mount_type(tokens.slice(1));
         case "-B" :
-            return mount_bind(tokesn.slice(1));
+            polkit.log("mount_bind");
+            return mount_bind(tokens.slice(1));
     }
+    polkit.log("mount failed");
     return polkit.Result.NOT_HANDLED;
 }
 
 function mount_type(tokens){
+    if (tokens.length == 3){polkit.log("tokens length is 3")}
+    if (tokens[0] == "proc"){polkit.log("tokens[0] == proc")}
+    if (tokens[1] == "proc"){polkit.log("tokens[1] == proc")}
+    if (tokens[2].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/proc$/)){polkit.log("tokens[2].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/proc$/)")}
     if (
         tokens.length == 3 && (
-            tokens[0] == "proc" && tokens[1] == "proc" & tokens[2].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/proc$/) ||
-            tokens[0] == "sysfs" && tokens[1] == "sys" & tokens[2].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/sys$/) ||
-            tokens[0] == "devpts" && tokens[1] == "pts" & tokens[2].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/dev\/pts$/) 
+            // proc proc /opt/reflectron/images/debian12/proc
+            tokens[0] == "proc" && tokens[1] == "proc" && tokens[2].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/proc$/) ||
+            tokens[0] == "sysfs" && tokens[1] == "sys" && tokens[2].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/sys$/) ||
+            tokens[0] == "devpts" && tokens[1] == "pts" && tokens[2].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/dev\/pts$/) 
         )
     ){
+        polkit.log("mount_type matched");
         return polkit.Result.YES;
     }
+    polkit.log("mount_type failed");
     return polkit.Result.NOT_HANDLED;
 }
 
@@ -125,19 +145,24 @@ function mount_bind(tokens){
         tokens[0] == "/dev" &&
         tokens[1].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/dev$/)
     ){
+        polkit.log("mount_bind matched");
         return polkit.Result.YES;
     }
+    polkit.log("mount_bind failed");
     return polkit.Result.NOT_HANDLED;
 }
 
+// pkexec cp /tmp/reflectron-fiu6rj /opt/reflectron/images/debian12/etc/apt/sources.list
 function copy_sources(tokens){
     if (
         tokens.length == 2 &&
-        /^\/tmp\/[0-9a-f]{12}$/.test(tokens[0]) &&
+        /^\/tmp\/reflectron-[0-9a-zA-Z]+$/.test(tokens[0]) &&
         /^\/opt\/reflectron\/images\/[a-zA-Z0-9\-_\.]+\/etc\/apt\/sources\.list$/.test(tokens[1])
     ) {
+        polkit.log("copy_sources matched");
         return polkit.Result.YES;
     }
+    polkit.log("copy_sources failed");
     return polkit.Result.NOT_HANDLED;
 }
 

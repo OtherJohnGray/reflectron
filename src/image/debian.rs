@@ -2,8 +2,6 @@ use std::path::Path;
 use std::process::{Command, exit};
 use crate::base::*;
 use crate::image::check_and_create_image_dir;
-use std::fs::File;
-use std::io::Write;
 
 
 pub fn create() {
@@ -16,12 +14,12 @@ pub fn create() {
     });
 
     // Run debootstrap
-    perform(
-        &format!("Run debootstrap in {}", image_path),
-        None,
-        pkexec(&[&debootstrap_path, "bookworm", &image_path]),
-        true
-    );
+    // perform(
+    //     &format!("Run debootstrap in {}", image_path),
+    //     None,
+    //     pkexec(&[&debootstrap_path, "bookworm", &image_path]),
+    //     true
+    // );
 
     // Prepare chroot
     perform("Mount proc",   None, pkexec(&["mount", "-t", "proc", "proc",  &format!("{}/proc",    &image_path)]), false);
@@ -96,3 +94,10 @@ deb-src http://deb.debian.org/debian bookworm-backports main contrib"#;
         false
     );
 }
+
+pub fn apt_install(new_root: &str, args: &[&str]) -> Command {
+    let mut apt_args = vec!["env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y"];
+    apt_args.extend_from_slice(args);
+    chroot(new_root, &apt_args)
+}
+

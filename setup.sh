@@ -23,8 +23,8 @@ chmod 644 /etc/polkit-1/rules.d/99-reflectron.rules
 # Create necessary directories
 mkdir -p /opt/reflectron/images
 mkdir /opt/reflectron/database
-chown -R :reflectron /opt/reflectron
-chmod -R 775 /opt/reflectron
+chown :reflectron /opt/reflectron /opt/reflectron/database /opt/reflectron/images
+chmod 775 /opt/reflectron /opt/reflectron/database /opt/reflectron/images
 chmod g+s /opt/reflectron/database
 
 mkdir /var/log/reflectron

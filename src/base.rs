@@ -1,4 +1,5 @@
 use std::fs::OpenOptions;
+use std::path::Path;
 use chrono::Local;
 use std::path::PathBuf;
 use std::thread;
@@ -56,15 +57,15 @@ pub fn pkexec(args: &[&str]) -> Command {
 }
 
 pub fn chroot(new_root: &str, args: &[&str]) -> Command {
-    let mut chroot_args = vec!["chroot", new_root];
+    // Check if chroot is installed
+    let chroot_path = which_chroot().unwrap_or_else(|| {
+        log("chroot cannot be found in /sbin, /usr/sbin, or /usr/local/sbin. Please install it and try again.");
+        std::process::exit(1);
+    });
+
+    let mut chroot_args = vec![&chroot_path, new_root];
     chroot_args.extend_from_slice(args);
     pkexec(&chroot_args)
-}
-
-pub fn apt_install(new_root: &str, args: &[&str]) -> Command {
-    let mut apt_args = vec!["DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y"];
-    apt_args.extend_from_slice(args);
-    chroot(new_root, &apt_args)
 }
 
 pub fn perform(description: &str, check: Option<Command>, mut operation: Command, stream_output: bool) {
@@ -199,4 +200,27 @@ pub fn get(mut command: Command) -> String {
             halt(&format!("Command '{}' failed: {}", command.cmdline(), e));
         }
     }
+}
+
+fn which_chroot() -> Option<String> {
+    let paths = vec![
+        "/usr/sbin/chroot",
+        "/sbin/chroot",
+        "/usr/local/sbin/chroot",
+    ];
+
+    for path in paths {
+        if Path::new(path).exists() {
+            return Some(path.to_string());
+        }
+    }
+
+    // If not found in standard locations, try to find it in PATH
+    if let Ok(output) = Command::new("which").arg("chroot").output() {
+        if output.status.success() {
+            return String::from_utf8(output.stdout).ok().map(|s| s.trim().to_string());
+        }
+    }
+
+    None
 }
