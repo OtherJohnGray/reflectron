@@ -55,7 +55,7 @@ function chroot(tokens) {
             if (
                 tokens.length > 3 &&
                 tokens[1] == "bash" &&
-                tokesn[2] ==  "-c"){
+                tokens[2] ==  "-c"){
                     polkit.log("bash");
                     return bash(tokens.slice(3));
             }
