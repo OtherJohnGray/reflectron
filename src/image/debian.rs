@@ -14,12 +14,12 @@ pub fn create() {
     });
 
     // Run debootstrap
-    // perform(
-    //     &format!("Run debootstrap in {}", image_path),
-    //     None,
-    //     pkexec(&[&debootstrap_path, "bookworm", &image_path]),
-    //     true
-    // );
+    perform(
+        &format!("Run debootstrap in {}", image_path),
+        None,
+        pkexec(&[&debootstrap_path, "bookworm", &image_path]),
+        true
+    );
 
     // Prepare chroot
     perform("Mount proc",   None, pkexec(&["mount", "-t", "proc", "proc",  &format!("{}/proc",    &image_path)]), false);
@@ -30,6 +30,29 @@ pub fn create() {
     // prepare apt
     write_sources_list(&image_path);
     perform("Update apt", None, chroot(&image_path, &["apt", "update"]), true);
+
+    perform(
+        "Configure locales", 
+        None,
+        chroot(&image_path, &["bash", "-c", "echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen"]),
+        false
+    );
+
+    // Then generate the locales
+    perform(
+        "Generate locales",
+        None,
+        chroot(&image_path, &["locale-gen"]),
+        false
+    );
+
+    // Then set the default locale
+    perform(
+        "Set default locale",
+        None,
+        chroot(&image_path, &["update-locale", "LANG=en_US.UTF-8", "LC_ALL=en_US.UTF-8"]),
+        false
+    );
 
     // install additional packages
     perform("Install packages", None, apt_install(&image_path, &["locales", "keyboard-configuration", "console-setup"]), true);

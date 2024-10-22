@@ -48,10 +48,30 @@ function chroot(tokens) {
             if (
                 tokens.length == 3 &&
                 tokens[1] == "apt" &&
-                tokens[2] == "update" 
-            ) {
-                polkit.log("chroot apt update matched");
-                return polkit.Result.YES;
+                tokens[2] == "update"){
+                    polkit.log("chroot apt update matched");
+                    return polkit.Result.YES;
+            }
+            if (
+                tokens.length > 3 &&
+                tokens[1] == "bash" &&
+                tokesn[2] ==  "-c"){
+                    polkit.log("bash");
+                    return bash(tokens.slice(3));
+            }
+            if (
+                tokens.length == 2 &&
+                tokens[1] == "locale-gen"){
+                    polkit.log("locale-gen matched");
+                    return polkit.Result.YES;
+            }
+            if (
+                tokens.length == 4 &&
+                tokens[1] == "update-locale" &&
+                tokens[2] == "LANG=en_US.UTF-8" &&
+                tokens[3] == "LC_ALL=en_US.UTF-8"){
+                    polkit.log("update-locale matched");
+                    return polkit.Result.YES;
             }
             if (
                 tokens.length > 6 &&
@@ -166,4 +186,8 @@ function copy_sources(tokens){
     return polkit.Result.NOT_HANDLED;
 }
 
+function bash(tokens){
+    if ( tokens[0] == "echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen" ){ polkit.log("bash locale.gen matched"); return polkit.Result.YES}
 
+    return polkit.Result.NOT_HANDLED;
+}
