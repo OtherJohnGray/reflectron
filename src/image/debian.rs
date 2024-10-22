@@ -76,8 +76,23 @@ deb-src http://deb.debian.org/debian bookworm-updates main contrib
 deb http://deb.debian.org/debian bookworm-backports main contrib
 deb-src http://deb.debian.org/debian bookworm-backports main contrib"#;
 
-    let sources_list_path = Path::new(image_path).join("etc").join("apt").join("sources.list");
+    let sources_list_path = format!("{}/etc/apt/sources.list", image_path);
+    
+    let temp_file = tempfile::Builder::new().prefix("reflectron-").tempfile().unwrap_or_else(|e| halt(&format!("Failed to create temporary file: {}", e)));
+    
+    std::fs::write(temp_file.path(), sources_list_content)
+        .unwrap_or_else(|e| halt(&format!("Failed to write to temporary file: {}", e)));
 
-    let mut file = File::create(&sources_list_path).unwrap_or_else(|e| halt(&format!("Could not overwrite file {} : {}", sources_list_path.as_path().to_str().unwrap(), e)));
-    file.write_all(sources_list_content.as_bytes()).unwrap_or_else(|e| halt(&format!("Error writing to {} : {}", sources_list_path.as_path().to_str().unwrap(), e)));
+    let cp_command = pkexec(&[
+        "cp",
+        temp_file.path().to_str().unwrap(),
+        &sources_list_path
+    ]);
+
+    perform(
+        "Writing sources.list",
+        None,
+        cp_command,
+        false
+    );
 }

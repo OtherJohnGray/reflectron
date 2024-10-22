@@ -1,18 +1,144 @@
 polkit.addRule(function(action, subject) {
     if (action.id == "org.freedesktop.policykit.exec" && subject.isInGroup("reflectron")) {
         var cmd = action.lookup("command_line");
-        var tokens = cmd.split(/\s+/);
+        var tokens = cmd.trim().split(/\s+/);
         
-        // Get the full path of debootstrap
+        // Get the full path of binaries
         var debootstrapPath = polkit.spawn(["which", "debootstrap"]).trim();
+        var chrootPath = polkit.spawn(["which", "chroot"]).trim();
         
-        if (tokens.length >= 3 &&
-            tokens[0] == debootstrapPath &&
-            tokens[1].match(/^[a-z]+$/) &&
-            tokens[2].startsWith("/opt/reflectron/images/") &&
-            tokens[2].substring("/opt/reflectron/images/".length).match(/^[a-zA-Z0-9]+$/)) {
-            
-            return polkit.Result.YES;
+        switch(tokens[0]) {
+            case debootstrapPath : 
+                return debootstrap(tokens.slice(1));
+            case chrootPath :
+                return chroot(tokens.slice(1));
+            case "mount" :
+                return mount(tokens.slice(1));
+            case "cp" :
+                return copy_sources(tokens.slice(1));
         }
     }
+    return polkit.Result.NOT_HANDLED;
 });
+
+function debootstrap(tokens) {
+    if (tokens.length == 2 &&
+        tokens[0].match(/^[a-z]+$/) &&
+        tokens[1].startsWith("/opt/reflectron/images/") &&
+        tokens[1].substring("/opt/reflectron/images/".length).match(/^[a-zA-Z0-9]+$/)) {
+        
+        return polkit.Result.YES;
+    } 
+    
+    return polkit.Result.NOT_HANDLED;
+}
+
+function chroot(tokens) {
+    if (tokens.length > 2 &&
+        tokens[0].match(/^[a-z]+$/) &&
+        tokens[1].startsWith("/opt/reflectron/images/") &&
+        tokens[1].substring("/opt/reflectron/images/".length).match(/^[a-zA-Z0-9]+$/)) {
+            if (
+                tokens.length == 2 &&
+                tokens[0] == "apt" &&
+                tokens[1] == "update" 
+            ) {
+                return polkit.Result.YES;
+            }
+            if (
+                tokens.length > 6 &&
+                tokens[2] == "DEBIAN_FRONTEND=noninteractive" &&
+                tokens[3] == "apt-get" &&
+                tokens[4] == "install" &&
+                tokens[5] == "-y"){
+                    return apt_install(tokens.split(6));
+            }
+
+    }
+
+    return polkit.Result.NOT_HANDLED;
+}
+
+function apt_install(tokens) {
+    // Debian package name rules from Policy Manual section 5.6.1:
+    // - Start with lowercase letter or number
+    // - Can contain lowercase letters, numbers, plus (+), minus (-), and dots (.)
+    // - Must be at least 2 characters
+    // - No hyphens before numbers/letters
+    // - No multiple consecutive hyphens
+    // - Plus signs only allowed in source package names
+    var debianNameRegex = /^[a-z0-9][a-z0-9+.-]+$/;
+    
+    for (var i = 0; i < tokens.length; i++) {
+        var pkg = tokens[i];
+        
+        // Basic pattern match
+        if (!debianNameRegex.test(pkg)) {
+            return polkit.Result.NO;
+        }
+
+        // Additional rules:
+        if (pkg.length < 2 ||                  // Must be at least 2 chars
+            pkg.includes('--') ||              // No consecutive hyphens
+            pkg.endsWith('-') ||               // Can't end in hyphen
+            pkg.endsWith('.') ||               // Can't end in dot
+            pkg.includes('.-') ||              // No dot-hyphen
+            pkg.includes('-.')) {              // No hyphen-dot
+            return polkit.Result.NO;
+        }
+    }
+    
+    return polkit.Result.YES;    
+}
+
+//"mount", "-t", "proc", "proc",  &format!("{}/proc",    &image_path)
+//"mount", "-t", "sysfs", "sys",  &format!("{}/sys",     &image_path)
+//"mount", "-B", "/dev",          &format!("{}/dev",     &image_path)
+//"mount", "-t", "devpts", "pts", &format!("{}/dev/pts", &image_path)
+
+function mount(tokens) {
+    switch (tokens[0]) {
+        case "-t" :
+            return mount_type(tokens.slice(1));
+        case "-B" :
+            return mount_bind(tokesn.slice(1));
+    }
+    return polkit.Result.NOT_HANDLED;
+}
+
+function mount_type(tokens){
+    if (
+        tokens.length == 3 && (
+            tokens[0] == "proc" && tokens[1] == "proc" & tokens[2].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/proc$/) ||
+            tokens[0] == "sysfs" && tokens[1] == "sys" & tokens[2].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/sys$/) ||
+            tokens[0] == "devpts" && tokens[1] == "pts" & tokens[2].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/dev\/pts$/) 
+        )
+    ){
+        return polkit.Result.YES;
+    }
+    return polkit.Result.NOT_HANDLED;
+}
+
+function mount_bind(tokens){
+    if (
+        tokens.length ==2 &&
+        tokens[0] == "/dev" &&
+        tokens[1].match(/^\/opt\/reflectron\/images\/[a-zA-Z0-9-_\.]+\/dev$/)
+    ){
+        return polkit.Result.YES;
+    }
+    return polkit.Result.NOT_HANDLED;
+}
+
+function copy_sources(tokens){
+    if (
+        tokens.length == 2 &&
+        /^\/tmp\/[0-9a-f]{12}$/.test(tokens[0]) &&
+        /^\/opt\/reflectron\/images\/[a-zA-Z0-9\-_\.]+\/etc\/apt\/sources\.list$/.test(tokens[1])
+    ) {
+        return polkit.Result.YES;
+    }
+    return polkit.Result.NOT_HANDLED;
+}
+
+
