@@ -188,6 +188,6 @@ function copy_sources(tokens){
 
 function bash(tokens){
     if ( tokens[0] == "echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen" ){ polkit.log("bash locale.gen matched"); return polkit.Result.YES}
-
+    polkit.log("bash failed");
     return polkit.Result.NOT_HANDLED;
 }
