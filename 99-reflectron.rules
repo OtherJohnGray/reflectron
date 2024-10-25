@@ -41,7 +41,7 @@ function debootstrap(tokens) {
 }
 
 function chroot(tokens) {
-    if (tokens.length > 2 &&
+    if (tokens.length > 1 &&
         tokens[0].startsWith("/opt/reflectron/images/") &&
         tokens[0].substring("/opt/reflectron/images/".length).match(/^[a-zA-Z0-9]+$/)) {
             polkit.log("chroot path matched");
@@ -84,6 +84,7 @@ function chroot(tokens) {
                     return apt_install(tokens.slice(6));
             }
     }
+    polkit.log("chroot failed for " + tokens.join(" ")); 
     return polkit.Result.NOT_HANDLED;
 }
 
@@ -187,7 +188,15 @@ function copy_sources(tokens){
 }
 
 function bash(tokens){
-    if ( tokens[0] == "echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen" ){ polkit.log("bash locale.gen matched"); return polkit.Result.YES}
+    if ( tokens[0] == "echo" &&
+         tokens[1] == "'en_US.UTF-8" &&
+         tokens[2] == "UTF-8'" &&
+         tokens[3] == ">" &&
+         tokens[4] == "/etc/locale.gen" ){
+             polkit.log("bash locale.gen matched");
+             return polkit.Result.YES
+    }
+
     polkit.log("bash failed");
     return polkit.Result.NOT_HANDLED;
 }
