@@ -6,6 +6,7 @@ polkit.addRule(function(action, subject) {
         
         // Get the full path of binaries
         var debootstrapPath = polkit.spawn(["which", "debootstrap"]).trim();
+        var envPath = polkit.spawn(["which", "env"]).trim();
         var chrootPath = polkit.spawn(["which", "chroot"]).trim();
         var mountPath = polkit.spawn(["which", "mount"]).trim();
         var cpPath = polkit.spawn(["which", "cp"]).trim();
@@ -14,15 +15,23 @@ polkit.addRule(function(action, subject) {
             case debootstrapPath :
                 polkit.log("debootstrap"); 
                 return debootstrap(tokens.slice(1));
-            case chrootPath :
-                polkit.log("chroot");
-                return chroot(tokens.slice(1));
+            case envPath :
+                if (
+                    tokens[1] == "-i" &&
+                    tokens[2] == chrootPath
+                ) {
+                    polkit.log("chroot");
+                    return chroot(tokens.slice(3));
+                } else {    
+                    polkit.log("env not '-i chroot' - failed.");
+                    return polkit.Result.NOT_HANDLED;
+                }
             case mountPath :
                 polkit.log("mount");
                 return mount(tokens.slice(1));
             case cpPath :
                 polkit.log("cp");
-                return copy_sources(tokens.slice(1));
+                return copy_config(tokens.slice(1));
         }
     }
     return polkit.Result.NOT_HANDLED;
@@ -47,27 +56,27 @@ function chroot(tokens) {
             polkit.log("chroot path matched");
             if (
                 tokens.length == 3 &&
-                tokens[1] == "apt" &&
+                tokens[1] == polkit.spawn(["which", "apt"]).trim() &&
                 tokens[2] == "update"){
                     polkit.log("chroot apt update matched");
                     return polkit.Result.YES;
             }
             if (
                 tokens.length > 3 &&
-                tokens[1] == "bash" &&
+                tokens[1] == polkit.spawn(["which", "bash"]).trim() &&
                 tokens[2] ==  "-c"){
                     polkit.log("bash");
                     return bash(tokens.slice(3));
             }
             if (
                 tokens.length == 2 &&
-                tokens[1] == "locale-gen"){
+                tokens[1] == polkit.spawn(["which", "locale-gen"]).trim()){
                     polkit.log("locale-gen matched");
                     return polkit.Result.YES;
             }
             if (
                 tokens.length == 4 &&
-                tokens[1] == "update-locale" &&
+                tokens[1] == polkit.spawn(["which", "update-locale"]).trim() &&
                 tokens[2] == "LANG=en_US.UTF-8" &&
                 tokens[3] == "LC_ALL=en_US.UTF-8"){
                     polkit.log("update-locale matched");
@@ -75,9 +84,9 @@ function chroot(tokens) {
             }
             if (
                 tokens.length > 6 &&
-                tokens[1] == "env" &&
+                tokens[1] == polkit.spawn(["which", "env"]).trim() &&
                 tokens[2] == "DEBIAN_FRONTEND=noninteractive" &&
-                tokens[3] == "apt-get" &&
+                tokens[3] == polkit.spawn(["which", "apt-get"]).trim() &&
                 tokens[4] == "install" &&
                 tokens[5] == "-y"){
                     polkit.log("apt install");
@@ -173,22 +182,23 @@ function mount_bind(tokens){
     return polkit.Result.NOT_HANDLED;
 }
 
-// pkexec cp /tmp/reflectron-fiu6rj /opt/reflectron/images/debian12/etc/apt/sources.list
-function copy_sources(tokens){
+// /usr/bin/cp -R /home/johngray/workspace/practice/reflectron/files/debian12/* /opt/reflectron/images/debian12/
+function copy_config(tokens){
     if (
-        tokens.length == 2 &&
-        /^\/tmp\/reflectron-[0-9a-zA-Z]+$/.test(tokens[0]) &&
-        /^\/opt\/reflectron\/images\/[a-zA-Z0-9\-_\.]+\/etc\/apt\/sources\.list$/.test(tokens[1])
+        tokens.length == 3 &&
+        tokens[0] == "-R" &&
+        /files\/debian12\/etc$/.test(tokens[1]) &&
+        /^\/opt\/reflectron\/images\/[a-zA-Z0-9\-_\.]+\/$/.test(tokens[2])
     ) {
-        polkit.log("copy_sources matched");
+        polkit.log("copy_config matched");
         return polkit.Result.YES;
     }
-    polkit.log("copy_sources failed");
+    polkit.log("copy_config failed");
     return polkit.Result.NOT_HANDLED;
 }
 
 function bash(tokens){
-    if ( tokens[0] == "echo" &&
+    if ( tokens[0] == polkit.spawn(["which", "echo"]).trim() &&
          tokens[1] == "'en_US.UTF-8" &&
          tokens[2] == "UTF-8'" &&
          tokens[3] == ">" &&

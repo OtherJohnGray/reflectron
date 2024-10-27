@@ -1,0 +1,11 @@
+deb http://deb.debian.org/debian bookworm main contrib
+deb-src http://deb.debian.org/debian bookworm main contrib
+
+deb http://deb.debian.org/debian-security bookworm-security main contrib
+deb-src http://deb.debian.org/debian-security/ bookworm-security main contrib
+
+deb http://deb.debian.org/debian bookworm-updates main contrib
+deb-src http://deb.debian.org/debian bookworm-updates main contrib
+
+deb http://deb.debian.org/debian bookworm-backports main contrib
+deb-src http://deb.debian.org/debian bookworm-backports main contrib

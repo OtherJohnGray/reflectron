@@ -51,19 +51,16 @@ pub fn halt(message: &str) -> ! {
 }
 
 pub fn pkexec(args: &[&str]) -> Command {
-    let mut pkexec = Command::new("pkexec");
+    let pkexec_path = which("pkexec");
+    let mut pkexec = Command::new(pkexec_path);
     pkexec.args(args);
     pkexec
 }
 
 pub fn chroot(new_root: &str, args: &[&str]) -> Command {
-    // Check if chroot is installed
-    let chroot_path = which_chroot().unwrap_or_else(|| {
-        log("chroot cannot be found in /sbin, /usr/sbin, or /usr/local/sbin. Please install it and try again.");
-        std::process::exit(1);
-    });
-
-    let mut chroot_args = vec![&chroot_path, new_root];
+    let env_path = which("env");
+    let chroot_path = which("chroot");
+    let mut chroot_args = vec![&env_path, "-i", &chroot_path, new_root];
     chroot_args.extend_from_slice(args);
     pkexec(&chroot_args)
 }
@@ -202,25 +199,21 @@ pub fn get(mut command: Command) -> String {
     }
 }
 
-fn which_chroot() -> Option<String> {
+pub fn which(program: &str) -> String {
     let paths = vec![
-        "/usr/sbin/chroot",
-        "/sbin/chroot",
-        "/usr/local/sbin/chroot",
+        "/usr/sbin/",
+        "/usr/bin/",
+        "/sbin/",
+        "/bin/",
     ];
 
-    for path in paths {
-        if Path::new(path).exists() {
-            return Some(path.to_string());
+    for path in &paths {
+        let program_path = format!("{}{}", path, program);
+        if Path::new(&program_path).exists() {
+            return program_path;
         }
     }
 
-    // If not found in standard locations, try to find it in PATH
-    if let Ok(output) = Command::new("which").arg("chroot").output() {
-        if output.status.success() {
-            return String::from_utf8(output.stdout).ok().map(|s| s.trim().to_string());
-        }
-    }
-
-    None
+    log(&format!("Could not find program {} in system paths {}. Please install it and try again.", program, &paths.join(" ")));
+    std::process::exit(1);
 }
