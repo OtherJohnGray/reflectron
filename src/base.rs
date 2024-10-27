@@ -95,11 +95,11 @@ pub fn perform(description: &str, check: Option<Command>, mut operation: Command
         let stderr = child.stderr.take().expect("Failed to capture stderr");
 
         let stdout_handle = thread::spawn(move || {
-            let reader = BufReader::new(stdout);
-            for line in reader.lines() {
-                if let Ok(line) = line {
-                    println!("{}", line);
-                }
+            let mut reader = BufReader::new(stdout);
+            let mut buffer = Vec::new();
+            while reader.read_until(b'\n', &mut buffer).unwrap_or(0) > 0 {
+                print!("{}", String::from_utf8_lossy(&buffer));
+                buffer.clear();
             }
         });
 
