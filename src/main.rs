@@ -40,6 +40,9 @@ enum ImageAction {
     Create {
         /// Distribution name
         distro: String,
+        /// Enable backports (Debian only)
+        #[arg(long, default_value_t = false)]
+        backports: bool,
     },
 }
 
@@ -53,8 +56,8 @@ fn main() {
         }
         Command::Image { action } => {
             match action {
-                ImageAction::Create { distro } => {
-                    create_image(&distro);
+                ImageAction::Create { distro, backports } => {
+                    create_image(&distro, backports);
                 }
             }
         }
@@ -71,11 +74,15 @@ fn new(machine_name: &str, ip: &str, password: &str) {
 }
 
 
-fn create_image(distro: &str) {
+fn create_image(distro: &str, backports: bool) {
     println!("Creating image for distribution: {}", distro);
     match distro.to_lowercase().as_str() {
-        "debian" => crate::image::debian::create(),
-        // Add more distributions here as needed
+        "debian" => {
+            if backports {
+                println!("Backports enabled");
+            }
+            crate::image::debian::create(backports)
+        }
         _ => println!("Unsupported distribution: {}\nOnly Debian 12 is supported at the current time.", distro),
     }
 }

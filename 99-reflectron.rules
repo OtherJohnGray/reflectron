@@ -89,8 +89,16 @@ function chroot(tokens) {
                 tokens[3] == polkit.spawn(["which", "apt-get"]).trim() &&
                 tokens[4] == "install" &&
                 tokens[5] == "-y"){
-                    polkit.log("apt install");
-                    return apt_install(tokens.slice(6));
+                    if (
+                        tokens.length > 8 &&
+                        tokens[6] == "-t" &&
+                        tokens[7] == "bookworm-backports"){
+                            polkit.log("apt install backports");
+                            return apt_install(tokens.slice(8));
+                        } else {
+                            polkit.log("apt install");
+                            return apt_install(tokens.slice(6));
+                        }
             }
     }
     polkit.log("chroot failed for " + tokens.join(" ")); 

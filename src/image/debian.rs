@@ -5,7 +5,7 @@ use crate::base::*;
 use crate::image::*;
 
 
-pub fn create() {
+pub fn create(backports: bool) {
     let current_dir = env::current_dir().unwrap_or_else(|e| halt(&format!("Could not find current directory: {}", e)));
     let check_dir = current_dir.join("files/debian12/etc/apt");
     if !check_dir.is_dir() {
@@ -38,7 +38,7 @@ pub fn create() {
     perform("Update apt", None, chroot(&image_path, &[&which("apt"), "update"]), true);
 
     // generate locale
-    perform("Install packages", None, apt_install(&image_path, &["locales"]), true);
+    perform("Install locales .deb package", None, apt_install(&image_path, backports, &["locales"]), true);
     copy_config(&image_path);
     perform(
         "Generate locales",
@@ -56,16 +56,37 @@ pub fn create() {
     );
 
     // install additional packages
-    perform("Install packages", None, apt_install(&image_path, &["keyboard-configuration", "console-setup"]), true);
+    perform(
+        "Install packages",
+        None,
+        apt_install(
+            &image_path,
+            backports,
+            &[
+                "keyboard-configuration",
+                "console-setup",
+                "linux-headers-amd64",
+                "linux-image-amd64",
+                "zfs-initramfs",
+                "dosfstools",
+                ]
+        ),
+        true
+    );
+
 
 
 }
 
 
-pub fn apt_install(new_root: &str, args: &[&str]) -> Command {
+pub fn apt_install(new_root: &str, backports: bool, args: &[&str]) -> Command {
     let env = image_which(new_root, "env");
     let apt_get = image_which(new_root, "apt-get");
-    let mut apt_args = vec![&env, "DEBIAN_FRONTEND=noninteractive", &apt_get, "install", "-y"];
+    let mut apt_args = if backports {
+        vec![&env, "DEBIAN_FRONTEND=noninteractive", &apt_get, "install", "-y", "-t", "bookworm-backports"]
+    } else {
+        vec![&env, "DEBIAN_FRONTEND=noninteractive", &apt_get, "install", "-y"]
+    };
     apt_args.extend_from_slice(args);
     chroot(new_root, &apt_args)
 }
