@@ -100,6 +100,13 @@ function chroot(tokens) {
                             return apt_install(tokens.slice(6));
                         }
             }
+            if (
+                tokens.length > 3 &&
+                tokens[1] == polkit.spawn(["which", "systemctl"]).trim() &&
+                tokens[2] == "enable"){
+                    polkit.log("systemctl enable");
+                    return systemctl_enable(tokens.slice(3));
+            }
     }
     polkit.log("chroot failed for " + tokens.join(" ")); 
     return polkit.Result.NOT_HANDLED;
@@ -121,7 +128,7 @@ function apt_install(tokens) {
         // Basic pattern match
         if (!debianNameRegex.test(pkg)) {
             polkit.log("apt install matched");
-            return polkit.Result.NO;
+            return polkit.Result.NOT_HANDLED;
         }
 
         // Additional rules:
@@ -132,17 +139,12 @@ function apt_install(tokens) {
             pkg.includes('.-') ||              // No dot-hyphen
             pkg.includes('-.')) {              // No hyphen-dot
             polkit.log("apt install failed");
-            return polkit.Result.NO;
+            return polkit.Result.NOT_HANDLED;
         }
     }
     polkit.log("apt install matched");
     return polkit.Result.YES;    
 }
-
-//"mount", "-t", "proc", "proc",  &format!("{}/proc",    &image_path)
-//"mount", "-t", "sysfs", "sys",  &format!("{}/sys",     &image_path)
-//"mount", "-B", "/dev",          &format!("{}/dev",     &image_path)
-//"mount", "-t", "devpts", "pts", &format!("{}/dev/pts", &image_path)
 
 function mount(tokens) {
     switch (tokens[0]) {
@@ -217,4 +219,21 @@ function bash(tokens){
 
     polkit.log("bash failed");
     return polkit.Result.NOT_HANDLED;
+}
+
+function systemctl_enable(tokens) {
+    if (
+        tokens.length == 1 &&
+        (
+            tokens[0] == "zfs.target" ||
+            tokens[0] == "zfs-import-cache" ||
+            tokens[0] == "zfs-mount" ||
+            tokens[0] == "zfs-import.target" 
+        )
+    ){
+            polkit.log("sytemctl enable " + tokens[0] + " matched");
+            return polkit.Result.YES;
+    } else {
+        return polkit.Result.NOT_HANDLED;
+    }
 }

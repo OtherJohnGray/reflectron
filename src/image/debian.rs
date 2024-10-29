@@ -1,6 +1,5 @@
 use std::env;
-use std::path::Path;
-use std::process::{Command, exit};
+use std::process::Command;
 use crate::base::*;
 use crate::image::*;
 
@@ -14,16 +13,16 @@ pub fn create(backports: bool) {
 
     let image_path = check_and_create_image_dir("debian12");
 
-    // // Check if debootstrap is installed
-    // let debootstrap_path = which("debootstrap");
+    // Check if debootstrap is installed
+    let debootstrap_path = which("debootstrap");
 
-    // // Run debootstrap
-    // perform(
-    //     &format!("Run debootstrap in {}", image_path),
-    //     None,
-    //     pkexec(&[&debootstrap_path, "bookworm", &image_path]),
-    //     true
-    // );
+    // Run debootstrap
+    perform(
+        &format!("Run debootstrap in {}", image_path),
+        None,
+        pkexec(&[&debootstrap_path, "bookworm", &image_path]),
+        true
+    );
 
     // Copy files
     copy_config(&image_path);
@@ -74,6 +73,11 @@ pub fn create(backports: bool) {
         true
     );
 
+    // enable services
+    perform("Enable zfs", None, chroot(&image_path, &[&image_which(&image_path, "systemctl"), "enable", "zfs.target"]), true);
+    perform("Enable zfs-import-cache", None, chroot(&image_path, &[&image_which(&image_path, "systemctl"), "enable", "zfs-import-cache"]), true);
+    perform("Enable zfs-mount", None, chroot(&image_path, &[&image_which(&image_path, "systemctl"), "enable", "zfs-mount"]), true);
+    perform("Enable zfs-import", None, chroot(&image_path, &[&image_which(&image_path, "systemctl"), "enable", "zfs-import.target"]), true);
 
 
 }
