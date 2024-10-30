@@ -1,3 +1,5 @@
+pub mod image;
+
 use std::fs::OpenOptions;
 use std::path::Path;
 use chrono::Local;
@@ -6,6 +8,7 @@ use std::thread;
 use std::time::Duration;
 use std::process::{Command, Stdio};
 use std::io::{BufReader, BufRead, Write};
+
 
 pub fn write_logfile(message: &str) {
     let now = Local::now();

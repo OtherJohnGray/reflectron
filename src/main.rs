@@ -1,9 +1,6 @@
-mod base;
-mod image;
-mod sanoid;
 
 use clap::Parser;
-//use crate::base::*;
+use reflectron::*;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -81,7 +78,7 @@ fn create_image(distro: &str, backports: bool) {
             if backports {
                 println!("Backports enabled");
             }
-            crate::image::debian::create(backports)
+            image::debian::create(backports)
         }
         _ => println!("Unsupported distribution: {}\nOnly Debian 12 is supported at the current time.", distro),
     }

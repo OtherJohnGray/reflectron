@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 use std::process::exit;
 use std::env;
-use crate::base::*;
+use crate::*;
 
 
 pub fn check_and_create_image_dir(image_name: &str) -> String {
@@ -32,7 +32,7 @@ pub fn check_and_create_image_dir(image_name: &str) -> String {
             image_path
         },
         Err(e) => {
-            halt(&format!("Failed to create directory {}: {}", image_path, e));
+            halt(&format!("Failed to create directory {}: {}", image_path, e))
         }
     }
 }
