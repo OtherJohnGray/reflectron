@@ -114,7 +114,38 @@ pub fn parse_output(output: &str) -> Vec<DiskInfo> {
         disks.push(disk);
     }
 
+    for disk in &disks {
+        if let Some(devlinks) = disk.additional_info.get("DEVLINKS") {
+            let expected_id = create_disk_id(disk);
+            if !devlinks.contains(&expected_id) {
+                halt!(
+                    "Calculated disk ID '{}' not found in DEVLINKS '{}' for disk {}",
+                    expected_id,
+                    devlinks,
+                    disk.name
+                );
+            }
+        } else {
+            halt!("Could not find DEVLINKS in additional info for disk {}", disk.name);
+        }
+    }
+
     disks
+}
+
+
+fn create_disk_id(disk: &DiskInfo) -> String {
+    // Get ID_SERIAL from additional_info
+    disk.additional_info.get("ID_SERIAL").map(|id_serial| {
+        // Get the bus type to determine prefix
+        let prefix = if disk.additional_info.get("ID_BUS").map_or("", |s| s) == "ata" {
+            "ata-"
+        } else {
+            "nvme-"
+        };
+        
+        format!("{}{}", prefix, id_serial)
+    }).unwrap_or_else(|| halt!("Could not find ID_SERIAL in disk additional_info for disk {}", disk.name))
 }
 
 
@@ -129,7 +160,7 @@ pub fn create_zvols(machine_name: &str, disks: &[DiskInfo]) {
          .to_lowercase();
 
         // Construct the full ZVOL path
-        let zvol_path = format!("rpool/reflectron/{}/{}", machine_name, disk_id);
+        let zvol_path = format!("rpool/reflectron/{}/{}", machine_name, &create_disk_id(disk));
 
         // Create the ZVOL
         perform(
