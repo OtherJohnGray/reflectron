@@ -1,4 +1,5 @@
 pub mod image;
+pub mod machine;
 
 use std::fs::OpenOptions;
 use std::path::Path;
@@ -8,6 +9,26 @@ use std::thread;
 use std::time::Duration;
 use std::process::{Command, Stdio};
 use std::io::{BufReader, BufRead, Write};
+
+
+#[macro_export]
+macro_rules! halt {
+    ($($arg:tt)*) => {{
+        let error_message = &format!("ERROR: {}", format!($($arg)*));
+        eprintln!("{}", error_message);
+        write_logfile(error_message);
+        std::process::exit(1)
+    }}
+}
+
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => {{
+        let message = &format!($($arg)*);
+        println!("{}", message);
+        write_logfile(message);
+    }}
+}
 
 
 pub fn write_logfile(message: &str) {
@@ -41,18 +62,6 @@ pub fn write_logfile(message: &str) {
     }
 }
 
-pub fn log(message: &str) {
-    println!("{}", message);
-    write_logfile(message);
-}
-
-pub fn halt(message: &str) -> ! {
-    let error_message = &format!("ERROR: {}", message);
-    eprintln!("{}", error_message);
-    write_logfile(error_message);
-    std::process::exit(1)
-}
-
 pub fn pkexec(args: &[&str]) -> Command {
     let pkexec_path = which("pkexec");
     let mut pkexec = Command::new(pkexec_path);
@@ -68,17 +77,24 @@ pub fn chroot(new_root: &str, args: &[&str]) -> Command {
     pkexec(&chroot_args)
 }
 
+pub fn zfs(args: &[&str]) -> Command {
+    let zfs_path = which("zfs");
+    let mut zfs_args = vec![&zfs_path[..]];
+    zfs_args.extend_from_slice(args);
+    pkexec(&zfs_args)
+}
+
 pub fn perform(description: &str, check: Option<Command>, mut operation: Command, stream_output: bool) {
     if let Some(mut check_cmd) = check {
         match check_cmd.output() {
             Ok(output) => {
                 if output.status.success() {
-                    log(&format!("{} was already done, skipping.", description));
+                    log!("{} was already done, skipping.", description);
                     return
                 } 
             },
             Err(e) => {
-                halt(&format!("Check command '{}' failed: {}", check_cmd.cmdline(), e));
+                halt!("Check command '{}' failed: {}", check_cmd.cmdline(), e);
             }
         }
     }
@@ -90,7 +106,7 @@ pub fn perform(description: &str, check: Option<Command>, mut operation: Command
         let mut child = match operation.spawn() {
             Ok(child) => child,
             Err(e) => {
-                halt(&format!("Failed to spawn command '{}': {}", operation.cmdline(), e));
+                halt!("Failed to spawn command '{}': {}", operation.cmdline(), e);
             }
         };
 
@@ -123,13 +139,13 @@ pub fn perform(description: &str, check: Option<Command>, mut operation: Command
                 stderr_handle.join().expect("Stderr thread panicked");
 
                 if status.success() {
-                    log(&format!("{} succeeded.", description));
+                    log!("{} succeeded.", description);
                 } else {
-                    halt(&format!("Command '{}' failed with exit code: {:?}", operation.cmdline(), status.code()));
+                    halt!("Command '{}' failed with exit code: {:?}", operation.cmdline(), status.code());
                 }
             },
             Err(e) => {
-                halt(&format!("Failed to wait for command '{}': {}", operation.cmdline(), e));
+                halt!("Failed to wait for command '{}': {}", operation.cmdline(), e);
             }
         }
     } else {
@@ -137,15 +153,15 @@ pub fn perform(description: &str, check: Option<Command>, mut operation: Command
         match operation.output() {
             Ok(output) => {
                 if output.status.success() {
-                    log(&format!("{} succeeded.", description));
+                    log!("{} succeeded.", description);
                 } else {
                     let stdout = String::from_utf8_lossy(&output.stdout);
                     let stderr = String::from_utf8_lossy(&output.stderr);
-                    halt(&format!("Command '{}' failed:\nSTDOUT: {}\nSTDERR: {}", operation.cmdline(), stdout, stderr));
+                    halt!("Command '{}' failed:\nSTDOUT: {}\nSTDERR: {}", operation.cmdline(), stdout, stderr);
                 }
             },
             Err(e) => {
-                halt(&format!("Command '{}' failed: {}", operation.cmdline(), e));
+                halt!("Command '{}' failed: {}", operation.cmdline(), e);
             }
         }
     }
@@ -178,7 +194,7 @@ pub fn wait(mut command: Command, sleep: u64) {
                 }
             },
             Err(e) => {
-                halt(&format!("Command '{}' failed: {}", command.cmdline(), e));
+                halt!("Command '{}' failed: {}", command.cmdline(), e);
             }
         }
     }
@@ -193,11 +209,11 @@ pub fn get(mut command: Command) -> String {
             } else {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                halt(&format!("Command '{}' failed:\nSTDOUT: {}\nSTDERR: {}", command.cmdline(), stdout, stderr));
+                halt!("Command '{}' failed:\nSTDOUT: {}\nSTDERR: {}", command.cmdline(), stdout, stderr);
             }
         },
         Err(e) => {
-            halt(&format!("Command '{}' failed: {}", command.cmdline(), e));
+            halt!("Command '{}' failed: {}", command.cmdline(), e);
         }
     }
 }
@@ -217,6 +233,6 @@ pub fn which(program: &str) -> String {
         }
     }
 
-    log(&format!("Could not find program {} in system paths {}. Please install it and try again.", program, &paths.join(" ")));
+    log!("Could not find program {} in system paths {}. Please install it and try again.", program, &paths.join(" "));
     std::process::exit(1);
 }

@@ -14,7 +14,6 @@ enum Command {
     /// Create a new machine
     New {
         /// Name of the machine
-        #[arg(short, long)]
         machine_name: String,
         /// IP address
         #[arg(short, long)]
@@ -49,7 +48,7 @@ fn main() {
 
     match cli.command {
         Command::New { machine_name, ip, password } => {
-            new(&machine_name, &ip, &password);
+            machine::new(&machine_name, &ip, &password);
         }
         Command::Image { action } => {
             match action {
@@ -62,13 +61,6 @@ fn main() {
 }
 
 
-fn new(machine_name: &str, ip: &str, password: &str) {
-    println!("Creating a new machine...");
-    println!("Machine Name: {}", machine_name);
-    println!("IP: {}", ip);
-    println!("Password: {}", password);
-    // Add your new machine creation logic here
-}
 
 
 fn create_image(distro: &str, backports: bool) {

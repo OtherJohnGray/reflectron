@@ -5,10 +5,10 @@ use crate::image::*;
 
 
 pub fn create(backports: bool) {
-    let current_dir = env::current_dir().unwrap_or_else(|e| halt(&format!("Could not find current directory: {}", e)));
+    let current_dir = env::current_dir().unwrap_or_else(|e| halt!("Could not find current directory: {}", e));
     let check_dir = current_dir.join("files/debian12/etc/apt");
     if !check_dir.is_dir() {
-        halt("reflectron setup needs to be run from the root of the reflectron project git repository.");
+        halt!("reflectron setup needs to be run from the root of the reflectron project git repository.");
     }
 
     let image_path = check_and_create_image_dir("debian12");
