@@ -14,7 +14,7 @@ pub const DISK_INFO: &str = "
     ";
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DiskInfo {
+pub struct Disk {
     pub name: String,
     pub size: String,
     pub device_type: String,
@@ -25,7 +25,7 @@ pub struct DiskInfo {
     pub additional_info: HashMap<String, String>,
 }
 
-impl fmt::Display for DiskInfo {
+impl fmt::Display for Disk {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Name: {}", self.name)?;
         writeln!(f, "Size: {}", self.size)?;
@@ -59,8 +59,8 @@ impl fmt::Display for DiskInfo {
 }
 
 
-pub fn parse_output(output: &str) -> Vec<DiskInfo> {
-    let mut disks: Vec<DiskInfo> = Vec::new();
+pub fn parse_output(output: &str) -> Vec<Disk> {
+    let mut disks: Vec<Disk> = Vec::new();
     let mut lines = output.lines();
     let mut current_disk_name: Option<String> = None;
     
@@ -96,7 +96,7 @@ pub fn parse_output(output: &str) -> Vec<DiskInfo> {
             continue;
         }
 
-        let disk = DiskInfo {
+        let disk = Disk {
             name: parts[0].to_string(),
             size: parts.get(1)
                 .map(|&s| s.to_string())
@@ -134,7 +134,7 @@ pub fn parse_output(output: &str) -> Vec<DiskInfo> {
 }
 
 
-fn create_disk_id(disk: &DiskInfo) -> String {
+fn create_disk_id(disk: &Disk) -> String {
     // Get ID_SERIAL from additional_info
     disk.additional_info.get("ID_SERIAL").map(|id_serial| {
         // Get the bus type to determine prefix
@@ -149,7 +149,7 @@ fn create_disk_id(disk: &DiskInfo) -> String {
 }
 
 
-pub fn create_zvols(machine_name: &str, disks: &[DiskInfo]) {
+pub fn create_zvols(machine_name: &str, disks: &[Disk]) {
     for disk in disks {
         // Create a standardized disk ID from vendor, model, and serial
         let disk_id = format!("{}-{}-{}",

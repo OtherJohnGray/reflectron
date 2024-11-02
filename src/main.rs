@@ -1,6 +1,7 @@
 
 use clap::Parser;
 use reflectron::*;
+use reflectron::settings::*;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -28,6 +29,13 @@ enum Command {
         #[command(subcommand)]
         action: ImageAction,
     },
+    /// Set reflecton properties
+    Set {
+        /// Property to set
+        #[command(subcommand)]
+        action: SetAction
+    },
+    
 }
 
 #[derive(Parser, Debug)]
@@ -39,6 +47,15 @@ enum ImageAction {
         /// Enable backports (Debian only)
         #[arg(long, default_value_t = false)]
         backports: bool,
+    },
+}
+
+#[derive(Parser, Debug)]
+enum SetAction {
+    /// Set the ZPool to use for disk images
+    DiskPool {
+        /// pool name
+        name: String,
     },
 }
 
@@ -54,6 +71,13 @@ fn main() {
             match action {
                 ImageAction::Create { distro, backports } => {
                     create_image(&distro, backports);
+                }
+            }
+        }
+        Command::Set { action } => {
+            match action {
+                SetAction::DiskPool { name } => {
+                    settings::set(Key::DiskPool, &name);
                 }
             }
         }

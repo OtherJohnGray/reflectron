@@ -1,6 +1,7 @@
 pub mod disk;
 pub mod image;
 pub mod machine;
+pub mod settings;
 
 use std::fs::OpenOptions;
 use std::path::Path;
@@ -61,6 +62,10 @@ pub fn write_logfile(message: &str) {
             std::process::exit(1);
         }
     }
+}
+
+pub fn open_database() -> sled::Db {
+    sled::open("/opt/reflectron/database").unwrap_or_else(|e| halt!("Could not open database: {}", e))
 }
 
 pub fn pkexec(args: &[&str]) -> Command {

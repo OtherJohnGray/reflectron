@@ -6,18 +6,18 @@ use crate::*;
 
 pub fn new(machine_name: &str, ip: &str, password: &str) {
     let disks = disk::parse_output(&get_disk_info(ip, password));
-    let db = sled::open("disk_info_db").unwrap_or_else(|e| halt!("Could not open database: {}", e));
+    let db = open_database();
     for disk in &disks {
         let disk_data = bincode::serialize(&disk).unwrap_or_else(|e| halt!("Could not serialize data: {}", e));
-        db.insert(disk.name.as_bytes(), disk_data).unwrap_or_else(|e| halt!("Could not insert data: {}", e));
+        db.insert(format!("machines::{}::disks::{}", machine_name, disk.name).as_bytes(), disk_data).unwrap_or_else(|e| halt!("Could not insert data: {}", e));
     }
 
     // print stored data
     println!("Machine: {}", machine_name);
     println!("-------------------");
-    for item in db.iter() {
+    for item in db.scan_prefix(format!("machines::{}::disks::", machine_name).as_bytes()) {
         let (_, value) = item.unwrap_or_else(|e| halt!("Could not access data: {}", e));
-        let disk: disk::DiskInfo = bincode::deserialize(&value).unwrap_or_else(|e| halt!("Could not deserialize disk: {}", e));
+        let disk: disk::Disk = bincode::deserialize(&value).unwrap_or_else(|e| halt!("Could not deserialize disk: {}", e));
         println!("{}", disk);
         println!("-------------------");
     }
