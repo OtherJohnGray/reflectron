@@ -3,13 +3,16 @@ use std::io::prelude::*;
 use std::net::TcpStream;
 use crate::*;
 
+fn machines_db() -> sled::Tree {
+    database().open_tree(b"machines").unwrap_or_else(|e| halt!("Could not open machines database tree: {}", e))
+}
 
 pub fn new(machine_name: &str, ip: &str, password: &str) {
     let disks = disk::parse_output(&get_disk_info(ip, password));
-    let db = open_database();
+    let db = machines_db();
     for disk in &disks {
         let disk_data = bincode::serialize(&disk).unwrap_or_else(|e| halt!("Could not serialize data: {}", e));
-        db.insert(format!("machines::{}::disks::{}", machine_name, disk.name).as_bytes(), disk_data).unwrap_or_else(|e| halt!("Could not insert data: {}", e));
+        db.insert(format!("{}/disks/{}", machine_name, disk.name).as_bytes(), disk_data).unwrap_or_else(|e| halt!("Could not insert data: {}", e));
     }
 
     // print stored data

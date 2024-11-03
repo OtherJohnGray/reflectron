@@ -11,6 +11,7 @@ use std::thread;
 use std::time::Duration;
 use std::process::{Command, Stdio};
 use std::io::{BufReader, BufRead, Write};
+use lazy_static::lazy_static;
 
 
 #[macro_export]
@@ -30,6 +31,16 @@ macro_rules! log {
         println!("{}", message);
         write_logfile(message);
     }}
+}
+
+
+lazy_static! {
+    static ref DATABASE: sled::Db = sled::open("/opt/reflectron/database")
+            .unwrap_or_else(|e| halt!("Could not open database: {}", e));
+}
+
+pub fn database() -> &'static sled::Db {
+    &DATABASE
 }
 
 

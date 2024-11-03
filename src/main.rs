@@ -35,6 +35,14 @@ enum Command {
         #[command(subcommand)]
         action: SetAction
     },
+    /// Get reflectron properties
+    Get {
+        /// Property to get
+        #[command(subcommand)]
+        action: GetAction
+    },
+    /// List reflectron properties
+    Settings,
     
 }
 
@@ -59,6 +67,12 @@ enum SetAction {
     },
 }
 
+#[derive(Parser, Debug)]
+enum GetAction {
+    /// Set the ZPool to use for disk images
+    DiskPool,
+}
+
 
 fn main() {
     let cli = Cli::parse();
@@ -78,6 +92,24 @@ fn main() {
             match action {
                 SetAction::DiskPool { name } => {
                     settings::set(Key::DiskPool, &name);
+                }
+            }
+        }
+        Command::Get { action } => {
+            match action {
+                GetAction::DiskPool => {
+                    println!("{}", settings::get(Key::DiskPool).unwrap_or("Not set".to_owned()));
+                }
+            }
+        }
+        Command::Settings => {
+            let settings = settings::list();
+            if settings.is_empty() {
+                println!("No settings found");
+            } else {
+                println!("Current settings:");
+                for (key, value) in settings {
+                    println!("  {}: {}", key, value);
                 }
             }
         }

@@ -2,6 +2,7 @@ use crate::*;
 use std::fmt;
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
+use settings::Key;
 
 pub const DISK_INFO: &str = "
         lsblk -b -ndo NAME,SIZE,TYPE,WWN,SERIAL,MODEL,VENDOR | grep -v ^loop;
@@ -159,8 +160,9 @@ pub fn create_zvols(machine_name: &str, disks: &[Disk]) {
         ).replace(" ", "-")
          .to_lowercase();
 
+        let zpool = settings::get(Key::DiskPool).unwrap_or_else(|| halt!("Reflectron property disk-pool has not been set. Use 'ref set disk-pool <poolname>' to set it, and retry this command."));
         // Construct the full ZVOL path
-        let zvol_path = format!("rpool/reflectron/{}/{}", machine_name, &create_disk_id(disk));
+        let zvol_path = format!("{}/reflectron/{}/{}", zpool, machine_name, &create_disk_id(disk));
 
         // Create the ZVOL
         perform(
