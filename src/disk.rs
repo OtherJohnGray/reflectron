@@ -171,8 +171,8 @@ pub fn create_zvols(machine: &Machine) {
             Some(zfs(&["list", &zvol_path])),
             zfs(&[
                 "create",
-                "-s",                   // sparse
-                "-b", "4K",             // assume 4k blocksize
+                "-sp",                  // sparse, parent
+                "-b", "64K",            // assume 64k blocksize
                 "-V", &disk.size,       // size in bytes, assume a multiple of 4k
                 &zvol_path
             ]),

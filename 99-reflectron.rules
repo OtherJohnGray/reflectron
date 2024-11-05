@@ -250,7 +250,19 @@ function zfs(tokens) {
     ) {
             polkit.log("zfs list " + tokens[1] + " matched");
             return polkit.Result.YES;
-    } else {
+    } else if (
+        tokens.length == 7 &&
+        tokens[0] == "create" &&
+        tokens[1] == "-sp" &&
+        tokens[2] == "-b" &&
+        tokens[3] == "64K" &&
+        tokens[4] == "-V" &&
+        /^[0-9]+$/.test(tokens[5]) &&
+        /^([a-zA-Z0-9\-_\.]\/?)+$/.test(tokens[6])
+    ) {
+            polkit.log("zfs create -sp -b 4K -V " + tokens[5] + " " + tokens[6] + " matched");
+            return polkit.Result.YES;
+} else {
         return polkit.Result.NOT_HANDLED;
     }
 }
