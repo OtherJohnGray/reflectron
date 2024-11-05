@@ -3,6 +3,7 @@ use std::fmt;
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use settings::Key;
+use crate::machine::Machine;
 
 pub const DISK_INFO: &str = "
         lsblk -b -ndo NAME,SIZE,TYPE,WWN,SERIAL,MODEL,VENDOR | grep -v ^loop;
@@ -150,8 +151,8 @@ fn create_disk_id(disk: &Disk) -> String {
 }
 
 
-pub fn create_zvols(machine_name: &str, disks: &[Disk]) {
-    for disk in disks {
+pub fn create_zvols(machine: &Machine) {
+    for disk in &machine.disks {
         // Create a standardized disk ID from vendor, model, and serial
         let disk_id = format!("{}-{}-{}",
             disk.vendor.as_deref().unwrap_or("unknown"),
@@ -162,7 +163,7 @@ pub fn create_zvols(machine_name: &str, disks: &[Disk]) {
 
         let zpool = settings::get(Key::DiskPool).unwrap_or_else(|| halt!("Reflectron property disk-pool has not been set. Use 'ref set disk-pool <poolname>' to set it, and retry this command."));
         // Construct the full ZVOL path
-        let zvol_path = format!("{}/reflectron/{}/{}", zpool, machine_name, &create_disk_id(disk));
+        let zvol_path = format!("{}/reflectron/{}/{}", zpool, machine.name, &create_disk_id(disk));
 
         // Create the ZVOL
         perform(

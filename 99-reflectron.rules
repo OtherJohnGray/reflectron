@@ -10,6 +10,7 @@ polkit.addRule(function(action, subject) {
         var chrootPath = polkit.spawn(["which", "chroot"]).trim();
         var mountPath = polkit.spawn(["which", "mount"]).trim();
         var cpPath = polkit.spawn(["which", "cp"]).trim();
+        var zfsPath = polkit.spawn(["which", "zfs"]).trim();
         
         switch(tokens[0]) {
             case debootstrapPath :
@@ -32,6 +33,9 @@ polkit.addRule(function(action, subject) {
             case cpPath :
                 polkit.log("cp");
                 return copy_config(tokens.slice(1));
+            case zfsPath :
+                polkit.log("zfs");
+                return zfs(tokens.slice(1));
         }
     }
     return polkit.Result.NOT_HANDLED;
@@ -232,6 +236,19 @@ function systemctl_enable(tokens) {
         )
     ){
             polkit.log("sytemctl enable " + tokens[0] + " matched");
+            return polkit.Result.YES;
+    } else {
+        return polkit.Result.NOT_HANDLED;
+    }
+}
+
+function zfs(tokens) {
+    if (
+        tokens.length == 2 &&
+        tokens[0] == "list" &&
+        /^([a-zA-Z0-9\-_\.]\/?)+$/.test(tokens[1])
+    ) {
+            polkit.log("zfs list " + tokens[1] + " matched");
             return polkit.Result.YES;
     } else {
         return polkit.Result.NOT_HANDLED;

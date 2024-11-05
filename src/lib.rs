@@ -101,18 +101,21 @@ pub fn zfs(args: &[&str]) -> Command {
     pkexec(&zfs_args)
 }
 
+pub fn success_stauts(mut command: Command) -> bool {
+    match command.output() {
+        Ok(output) => {
+            output.status.success()
+        },
+        Err(e) => {
+            halt!("Error running check command '{}': {}", command.cmdline(), e);
+        }
+    }
+}
+
 pub fn perform(description: &str, check: Option<Command>, mut operation: Command, stream_output: bool) {
-    if let Some(mut check_cmd) = check {
-        match check_cmd.output() {
-            Ok(output) => {
-                if output.status.success() {
-                    log!("{} was already done, skipping.", description);
-                    return
-                } 
-            },
-            Err(e) => {
-                halt!("Check command '{}' failed: {}", check_cmd.cmdline(), e);
-            }
+    if let Some(check_cmd) = check {
+        if success_stauts(check_cmd) {
+            log!("{} was already done, skipping.", description);
         }
     }
 
